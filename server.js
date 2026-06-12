@@ -13,11 +13,12 @@ app.get("/auth", (req, res) => {
   const clientId = process.env.SHOPIFY_CLIENT_ID;
   const redirectUri = process.env.REDIRECT_URI;
   
-  const scopes = "read_products,write_products,read_orders,write_orders,read_content,write_content";
+  const scopes = "read_product_feeds,write_product_feeds,read_product_listings,write_product_listings,read_products,write_products";
   
   const authUrl = `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${redirectUri}&response_type=code`;
   
   console.log("🔐 Redirecting to Shopify for authorization...");
+  console.log("Auth URL:", authUrl);
   res.redirect(authUrl);
 });
 
@@ -25,16 +26,29 @@ app.get("/auth", (req, res) => {
 // ROUTE 2: Callback - Shopify redirects here after installation
 // ============================================================
 app.get("/auth/callback", async (req, res) => {
-  const { code, shop } = req.query;
+  console.log("📥 Callback received!");
+  console.log("Query parameters:", req.query);
   
-  if (!code || !shop) {
-    return res.status(400).send("Missing code or shop parameter");
+  const { code, shop, host } = req.query;
+  
+  // More flexible validation - shop can come from env or query
+  if (!code) {
+    console.error("❌ Missing code parameter");
+    return res.status(400).send("Missing authorization code");
   }
   
-  console.log("📥 Received authorization code");
+  // Use shop from query param, or fall back to env variable
+  const targetShop = shop || process.env.SHOPIFY_STORE;
+  
+  if (!targetShop) {
+    console.error("❌ No shop specified");
+    return res.status(400).send("Missing shop parameter");
+  }
+  
+  console.log(`📥 Received authorization code for shop: ${targetShop}`);
   
   try {
-    const response = await axios.post(`https://${shop}/admin/oauth/access_token`, {
+    const response = await axios.post(`https://${targetShop}/admin/oauth/access_token`, {
       client_id: process.env.SHOPIFY_CLIENT_ID,
       client_secret: process.env.SHOPIFY_CLIENT_SECRET,
       code: code
@@ -95,20 +109,33 @@ app.get("/auth/callback", async (req, res) => {
     `);
     
   } catch (error) {
-    console.error("❌ Error:", error.response?.data || error.message);
+    console.error("❌ Error exchanging code for token:", error.response?.data || error.message);
     res.status(500).send(`
       <h1>Error Getting Token</h1>
       <p>Error: ${error.response?.data?.error || error.message}</p>
       <p>Check that your CLIENT_ID and CLIENT_SECRET are correct in environment variables.</p>
+      <pre>${JSON.stringify(error.response?.data, null, 2)}</pre>
     `);
   }
+});
+
+// Debug endpoint
+app.get("/debug-env", (req, res) => {
+  res.json({
+    has_store: !!process.env.SHOPIFY_STORE,
+    has_client_id: !!process.env.SHOPIFY_CLIENT_ID,
+    has_secret: !!process.env.SHOPIFY_CLIENT_SECRET,
+    has_redirect: !!process.env.REDIRECT_URI,
+    store_value: process.env.SHOPIFY_STORE || "MISSING",
+    redirect_value: process.env.REDIRECT_URI || "MISSING"
+  });
 });
 
 app.get("/", (req, res) => {
   res.json({
     status: "Running ✅",
     message: "Visit /auth to get your permanent token",
-    auth_url: `${process.env.RENDER_EXTERNAL_URL || 'https://e22-agent-api.onrender.com'}/auth`
+    auth_url: `https://e22-agent-api.onrender.com/auth`
   });
 });
 
