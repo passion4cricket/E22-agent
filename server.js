@@ -13,7 +13,7 @@ app.get("/auth", (req, res) => {
   const clientId = process.env.SHOPIFY_CLIENT_ID;
   const redirectUri = process.env.REDIRECT_URI;
   
-  const scopes = "read_content,write_content,read_products,write_products";
+  const scopes = "read_products,write_products,read_orders,write_orders,read_content,write_content";
   
   const authUrl = `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${redirectUri}&response_type=code`;
   
@@ -79,6 +79,16 @@ app.get("/auth/callback", async (req, res) => {
           </div>
           
           <button onclick="navigator.clipboard.writeText('${PERMANENT_TOKEN}')">📋 Copy Token</button>
+          
+          <hr>
+          
+          <p><strong>Next Steps:</strong></p>
+          <ol style="text-align: left;">
+            <li>Copy the token above</li>
+            <li>Go to your Zoho Flow Shopify connector</li>
+            <li>Paste this token as the <strong>Access Token</strong></li>
+            <li>Save and test the connection</li>
+          </ol>
         </div>
       </body>
       </html>
@@ -89,6 +99,7 @@ app.get("/auth/callback", async (req, res) => {
     res.status(500).send(`
       <h1>Error Getting Token</h1>
       <p>Error: ${error.response?.data?.error || error.message}</p>
+      <p>Check that your CLIENT_ID and CLIENT_SECRET are correct in environment variables.</p>
     `);
   }
 });
@@ -97,7 +108,7 @@ app.get("/", (req, res) => {
   res.json({
     status: "Running ✅",
     message: "Visit /auth to get your permanent token",
-    auth_url: `${process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000'}/auth`
+    auth_url: `${process.env.RENDER_EXTERNAL_URL || 'https://e22-agent-api.onrender.com'}/auth`
   });
 });
 

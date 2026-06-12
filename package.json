@@ -7,8 +7,20 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "axios": "^1.6.0",
-    "dotenv": "^16.3.1"
-  }
+    "axios": "^1.17.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/passion4cricket/E22-agent.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/passion4cricket/E22-agent/issues"
+  },
+  "homepage": "https://github.com/passion4cricket/E22-agent#readme"
 }
