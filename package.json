@@ -1,6 +1,7 @@
 {
-  "name": "shopify-permanent-token",
+  "name": "shopify-token-generator",
   "version": "1.0.0",
+  "description": "Generate permanent Shopify API tokens",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

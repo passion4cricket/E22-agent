@@ -13,8 +13,7 @@ app.get("/auth", (req, res) => {
   const clientId = process.env.SHOPIFY_CLIENT_ID;
   const redirectUri = process.env.REDIRECT_URI;
   
-  // Scopes you need (add more if required)
-  const scopes = "read_content,write_content";
+  const scopes = "read_content,write_content,read_products,write_products";
   
   const authUrl = `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${redirectUri}&response_type=code`;
   
@@ -32,25 +31,19 @@ app.get("/auth/callback", async (req, res) => {
     return res.status(400).send("Missing code or shop parameter");
   }
   
-  console.log("📥 Received authorization code:", code.substring(0, 20) + "...");
-  console.log("🏪 Shop:", shop);
+  console.log("📥 Received authorization code");
   
   try {
-    // Exchange the code for a permanent token
     const response = await axios.post(`https://${shop}/admin/oauth/access_token`, {
       client_id: process.env.SHOPIFY_CLIENT_ID,
       client_secret: process.env.SHOPIFY_CLIENT_SECRET,
       code: code
-      // IMPORTANT: NO "expiring=1" parameter = PERMANENT TOKEN
     });
     
     const PERMANENT_TOKEN = response.data.access_token;
     
-    console.log("\n✅✅✅ PERMANENT TOKEN GENERATED ✅✅✅");
-    console.log("TOKEN:", PERMANENT_TOKEN);
-    console.log("This token will NEVER expire!\n");
+    console.log("✅ Token generated successfully");
     
-    // Display the token in a clean HTML page
     res.send(`
       <!DOCTYPE html>
       <html>
@@ -64,13 +57,12 @@ app.get("/auth/callback", async (req, res) => {
           .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 16px; text-align: left; margin: 20px 0; border-radius: 4px; }
           button { background: #28a745; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; margin: 10px; }
           button:hover { background: #218838; }
-          code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
           hr { margin: 30px 0; }
         </style>
       </head>
       <body>
         <div class="container">
-          <h1 class="success">✅ Permanent Token Generated Successfully!</h1>
+          <h1 class="success">✅ Permanent Token Generated!</h1>
           
           <div class="token-box">
             <strong style="color: #9cdcfe;">🔑 YOUR PERMANENT API TOKEN:</strong><br><br>
@@ -78,67 +70,38 @@ app.get("/auth/callback", async (req, res) => {
           </div>
           
           <div class="warning">
-            <strong>⚠️ IMPORTANT - READ CAREFULLY:</strong>
+            <strong>⚠️ SAVE THIS TOKEN NOW:</strong>
             <ul>
               <li>This token will <strong>NEVER EXPIRE</strong></li>
-              <li><strong>Copy it RIGHT NOW</strong> - you will never see it again</li>
-              <li>Add this to your Zoho Flow Shopify connection as the Access Token</li>
-              <li>Store it securely in your Render environment as <code>SHOPIFY_ADMIN_TOKEN</code></li>
+              <li><strong>Copy it NOW</strong> - you won't see it again</li>
+              <li>Add to Zoho Flow as your Access Token</li>
             </ul>
           </div>
           
-          <button onclick="navigator.clipboard.writeText('${PERMANENT_TOKEN}')">📋 Copy Token to Clipboard</button>
-          
-          <hr>
-          
-          <p><strong>Next Steps for Zoho Flow:</strong></p>
-          <ol style="text-align: left;">
-            <li>Copy the token above</li>
-            <li>Go to your Zoho Flow Shopify connector</li>
-            <li>Paste this token as the <strong>Access Token</strong></li>
-            <li>Save and test the connection</li>
-          </ol>
-          
-          <p style="color: #666; font-size: 12px; margin-top: 30px;">
-            This token is permanent. You can now stop this server or keep it running for other tasks.
-          </p>
+          <button onclick="navigator.clipboard.writeText('${PERMANENT_TOKEN}')">📋 Copy Token</button>
         </div>
-        <script>
-          console.log("Permanent Token:", "${PERMANENT_TOKEN}");
-        </script>
       </body>
       </html>
     `);
     
   } catch (error) {
-    console.error("❌ Error getting token:", error.response?.data || error.message);
+    console.error("❌ Error:", error.response?.data || error.message);
     res.status(500).send(`
       <h1>Error Getting Token</h1>
       <p>Error: ${error.response?.data?.error || error.message}</p>
-      <p>Check that your CLIENT_ID and CLIENT_SECRET are correct in environment variables.</p>
     `);
   }
 });
 
-// ============================================================
-// Health check endpoint
-// ============================================================
 app.get("/", (req, res) => {
   res.json({
     status: "Running ✅",
-    message: "Visit /auth to start the OAuth flow and get your permanent token",
-    endpoints: {
-      start: "/auth",
-      callback: "/auth/callback"
-    }
+    message: "Visit /auth to get your permanent token",
+    auth_url: `${process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000'}/auth`
   });
 });
 
-// ============================================================
-// Start the server
-// ============================================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`\n🚀 Server running on port ${PORT}`);
-  console.log(`📍 Visit:https://preordersync.onrender.com/auth to get your token\n`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
